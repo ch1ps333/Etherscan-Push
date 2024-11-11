@@ -59,10 +59,13 @@ async def process_transaction(config, group, tx, eth_price, tx_time):
     gas_in_usd = round(gas_price_in_eth * eth_price * int(tx['gas']), 1)
     timestamp = int(tx['timeStamp'])
     tx_time = datetime.utcfromtimestamp(timestamp)
+    gas = int(tx['gasPrice'])
+    trans_gas = gas / 10**9
+    trans_gas = f"{trans_gas:.9f}"
     
     res = await database.add_group_transaction_sum(group.tg_id, int(value_in_usd))
     transactionSum = await database.get_group_trans_sum(group.tg_id)
-    await send_notification(config.template_message, group.tg_id, tx_hash, tx_link, tx['blockNumber'], tx['from'], tx['to'], value_in_usd, value_in_eth, gas_in_usd, transactionSum, tx_time.strftime('%Y-%m-%d %H:%M:%S'))
+    await send_notification(config.template_message, group.tg_id, tx_hash, tx_link, tx['blockNumber'], tx['from'], tx['to'], value_in_usd, value_in_eth, gas_in_usd, trans_gas, transactionSum, tx_time.strftime('%Y-%m-%d %H:%M:%S'))
 
     redis_client.setex(group_tx_key, timedelta(hours=2), 1)
 
