@@ -1,7 +1,9 @@
 from aiogram import Router, Bot, F
 from aiogram.filters import  Command, CommandStart
 from utils import General, GroupEdit, AddressEdit
-from aiogram.types import Message, InlineKeyboardMarkup
+from aiogram.types import Message, InputFile, ContentType
+
+import os
 from typing import Optional
 from aiogram.fsm.context import FSMContext
 import reply
@@ -62,6 +64,7 @@ async def change_template_message(message: Message, state: FSMContext):
 
             config = await database.get_config()
             await message.answer("Введите текст для отправки при рассылке транзакций:\n\n"
+                                 "Смайлики: {smiles}\n"
                                  "Хэш транзакции: {trans_hash}\n"
                                  "Ссылка на транзакцию: {trans_link}\n"
                                  "Блок транзакции: {trans_block}\n"
@@ -69,7 +72,8 @@ async def change_template_message(message: Message, state: FSMContext):
                                  "Получатель: {trans_to}\n"
                                  "Сумма перевода: {trans_value}\n"
                                  "Сума перевода в ETH: {trans_eth}\n"
-                                 "Цена газа: {trans_gas}\n"
+                                 "Цена газа в газах: {trans_gas}\n"
+                                 "Цена газа в долларах: {trans_gas_usdt}\n"
                                  "Общая сумма транзакций в группе: {group_trans_sum}\n"
                                  "Время транзакции: {trans_timestamp}\n\n"
                                  "Для добавления тексту стилей используйте HTML тэги:\n\n"
@@ -163,6 +167,28 @@ async def add_admin(message: Message, state: FSMContext):
     except Exception as err:
         print(err)
 
+@router.message(F.text == "Изменить фото для сообщений")
+async def change_photo(message: Message, state: FSMContext):
+    try:
+        admin_list = get_admin_list()
+        if message.from_user.id in admin_list:
+        
+            await message.answer("Пришлите фото.", reply_markup=await reply.display_cancel())
+            await state.set_state(General.get_photo)
+    except Exception as err:
+        print(err)
+
+@router.message(F.text == "Изменить гифку для сообщений")
+async def change_photo(message: Message, state: FSMContext):
+    try:
+        admin_list = get_admin_list()
+        if message.from_user.id in admin_list:
+        
+            await message.answer("Пришлите гифку.", reply_markup=await reply.display_cancel())
+            await state.set_state(General.get_gif)
+    except Exception as err:
+        print(err)
+
 @router.message(F.text.regexp(r"^Удалить админа (\d+)$"))
 async def delete_admin(message: Message, state: FSMContext):
     try:
@@ -198,6 +224,7 @@ async def change_template_message_(message: Message, state: FSMContext):
                     res = await database.change_template(message.text)
                     if res:
                         formatted_message = message.text.format(
+                            smiles = f"{'🤑' * 20}",
                             trans_hash='0xbb144c5b5b7897fde53b708ca38cedd6eee69c14ebf561018d98247e43c771dd',
                             trans_link='https://etherscan.io/tx/0xbb144c5b5b7897fde53b708ca38cedd6eee69c14ebf561018d98247e43c771dd',
                             trans_block='3434',
@@ -205,7 +232,8 @@ async def change_template_message_(message: Message, state: FSMContext):
                             trans_to='0x4675C7e5BaAFBFFbca748158bEcBA61ef3b0a263',
                             trans_value='434',
                             trans_eth='0.60',
-                            trans_gas='0.60',
+                            trans_gas_usdt='0.60',
+                            trans_gas='34344',
                             trans_timestamp="2024-06-17 17:06:38",
                             group_trans_sum='19340'
                         )
@@ -268,6 +296,40 @@ async def add_admin_(message: Message, state: FSMContext):
                     await message.answer("Данный пользователь уже является администратора, введите другой ID.")
             else:
                 await message.answer("Введите ID.")
+    except Exception as err:
+        print(err)
+
+@router.message(General.get_photo)
+async def add_admin_(message: Message, state: FSMContext):
+    try:
+        if message.text == 'Отмена':
+            await message.answer("Вы успешно отменили изменение фото и вернулись в главное меню.", reply_markup=await reply.display_general_menu())
+            await state.clear()
+        else:
+            if message.photo:
+                photo = message.photo[-1]
+                await database.change_file('photo', photo.file_id)
+                await message.answer("Вы успешно изменили фото и вернулись в главное меню.", reply_markup=await reply.display_general_menu())
+                await state.clear()
+            else:
+                await message.answer("Пришлите фото.")
+    except Exception as err:
+        print(err)
+
+@router.message(General.get_gif)
+async def add_admin_(message: Message, state: FSMContext):
+    try:
+        if message.text == 'Отмена':
+            await message.answer("Вы успешно отменили изменение гифки и вернулись в главное меню.", reply_markup=await reply.display_general_menu())
+            await state.clear()
+        else:
+            if message.animation:
+                gif = message.animation
+                await database.change_file('gif', gif.file_id)
+                await message.answer("Вы успешно изменили гифку и вернулись в главное меню.", reply_markup=await reply.display_general_menu())
+                await state.clear()
+            else:
+                await message.answer("Пришлите гифку.")
     except Exception as err:
         print(err)
 
@@ -527,13 +589,27 @@ async def address_edit_(message: Message, state: FSMContext):
 
 
 async def send_message(user: int, text: str, session: Optional[aiohttp.ClientSession] = None):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    config = await database.get_config()
 
-    params = {
-        'chat_id': user,
-        'text': text,
-        'parse_mode': 'HTML'
-    }
+    if config.file_type == 'photo':
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+
+        params = {
+            'chat_id': user,          
+            'caption': text,         
+            'parse_mode': 'HTML',     
+            'photo': config.photo_id       
+        }
+
+    elif config.file_type == 'gif':
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendAnimation"
+
+        params = {
+            'chat_id': user,        
+            'caption': text,        
+            'parse_mode': 'HTML',   
+            'animation': config.gif_id 
+        }
 
     if session is None:
         async with aiohttp.ClientSession() as session:
@@ -549,9 +625,11 @@ async def send_message(user: int, text: str, session: Optional[aiohttp.ClientSes
                 response_text = await response.text()
                 print(f"Ответ: {response_text}")
 
-async def send_notification(template_message, chat_id, trans_hash, trans_link, trans_block, trans_from, trans_to, trans_value, trans_eth, trans_gas, group_trans_sum, trans_timestamp):
+async def send_notification(template_message, chat_id, trans_hash, trans_link, trans_block, trans_from, trans_to, trans_value, trans_eth, trans_gas_usdt, trans_gas, group_trans_sum, trans_timestamp):
     try:
+        smiles = f"{'🤑' * (int(trans_value) // 10)}"
         formatted_message = template_message.format(
+            smiles=smiles,
             trans_hash=trans_hash,
             trans_link=trans_link,
             trans_block=trans_block,
@@ -559,14 +637,41 @@ async def send_notification(template_message, chat_id, trans_hash, trans_link, t
             trans_to=trans_to,
             trans_value=trans_value,
             trans_eth=trans_eth,
+            trans_gas_usdt=trans_gas_usdt,
             trans_gas=trans_gas,
             trans_timestamp=trans_timestamp,
             group_trans_sum=group_trans_sum
         )
 
-        formatted_message = f"{'🤑' * (int(trans_value) // 10)}\n\n{formatted_message}"
-        
         async with aiohttp.ClientSession() as session:
             await send_message(chat_id, formatted_message, session)
     except Exception as err:
         print(f"Ошибка при отправке сообщения: {err}")
+
+
+PHOTO_PATH = os.path.join(os.getcwd(), "photo.jpg")
+GIF_PATH = "gif.gif"
+
+# Удаляет файл, если он уже существует
+def remove_existing_file(path):
+    if os.path.exists(path):
+        os.remove(path)
+
+@router.message(F.photo)
+async def process_photo(message: Message):
+    # Получаем список фотографий в сообщении
+    photo = message.photo[-1]  # Выбираем последнюю фотографию
+
+    # Отправляем фото, используя file_id
+
+    await message.answer_photo(photo.file_id, caption='sdsdsds')
+
+
+@router.message(F.animation)
+async def process_animation(message: Message):
+    # Получаем последнюю гифку
+    animation = message.animation
+
+    # Отправляем гифку, используя file_id
+    await message.answer(animation.file_id)
+    await message.answer_animation(animation.file_id, caption="sdsodkosd")
