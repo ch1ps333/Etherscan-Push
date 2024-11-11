@@ -10,6 +10,10 @@ async def display_general_menu():
                 KeyboardButton(text="Список админов")
             ],
             [
+                KeyboardButton(text="Изменить фото для сообщений"),
+                KeyboardButton(text="Изменить гифку для сообщений")
+            ],
+            [
                 KeyboardButton(text="Изменить интервал сбора информации"),
                 KeyboardButton(text="Настройки адрессов"),
                 KeyboardButton(text="Настройки групп")
