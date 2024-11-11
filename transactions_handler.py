@@ -63,7 +63,7 @@ async def process_transaction(config, group, tx, eth_price, tx_time):
     
     res = await database.add_group_transaction_sum(group.tg_id, int(value_in_usd))
     transactionSum = await database.get_group_trans_sum(group.tg_id)
-    await send_notification(config.template_message, group.tg_id, tx_hash, tx_link, tx['blockNumber'], tx['from'], tx['to'], value_in_usd, eth_price, gas_in_usd, transactionSum, tx_time.strftime('%Y-%m-%d %H:%M:%S'))
+    await send_notification(config.template_message, group.tg_id, tx_hash, tx_link, tx['blockNumber'], tx['from'], tx['to'], value_in_usd, value_in_eth, gas_in_usd, transactionSum, tx_time.strftime('%Y-%m-%d %H:%M:%S'))
 
     redis_client.setex(group_tx_key, timedelta(hours=2), 1)
 
@@ -81,37 +81,38 @@ async def collect_transactions():
 
             if groups:
                 for group in groups:
+                    if group.status:
 
-                    addresses = await database.get_addresses(group.tg_id)
+                        addresses = await database.get_addresses(group.tg_id)
 
-                    for address in addresses:
+                        for address in addresses:
 
-                        transactions = get_transactions(address, API_KEY)
+                            transactions = get_transactions(address, API_KEY)
 
-                        if transactions:
+                            if transactions:
 
-                            for tx in transactions[:20]:
-                                value_in_eth = int(tx['value']) / 10**18
-                                value_in_usd = value_in_eth * eth_price
+                                for tx in transactions[:20]:
+                                    value_in_eth = int(tx['value']) / 10**18
+                                    value_in_usd = value_in_eth * eth_price
 
-                                if value_in_usd >= group.min_amount and value_in_usd <= group.max_amount:
-                                    tx_hash = tx['hash']
-                                    tx_link = f"https://etherscan.io/tx/{tx_hash}"
-                                    gas_price_in_eth = int(tx['gasPrice']) / 10**18
-                                    gas_in_usd = gas_price_in_eth * eth_price * int(tx['gas'])
-                                    timestamp = int(tx['timeStamp'])
+                                    if value_in_usd >= group.min_amount and value_in_usd <= group.max_amount:
+                                        tx_hash = tx['hash']
+                                        tx_link = f"https://etherscan.io/tx/{tx_hash}"
+                                        gas_price_in_eth = int(tx['gasPrice']) / 10**18
+                                        gas_in_usd = gas_price_in_eth * eth_price * int(tx['gas'])
+                                        timestamp = int(tx['timeStamp'])
 
-                                    tx_time = datetime.utcfromtimestamp(timestamp)
+                                        tx_time = datetime.utcfromtimestamp(timestamp)
 
-                                    current_time = datetime.utcnow()
-                                    time_diff = current_time - tx_time
+                                        current_time = datetime.utcnow()
+                                        time_diff = current_time - tx_time
 
-                                    address_info = await database.get_address(address, group.tg_id)
+                                        address_info = await database.get_address(address, group.tg_id)
 
-                                    if time_diff <= timedelta(hours=1) and ((tx['from'] == address and address_info.transactions_from == True) or (tx['to'] == address and address_info.transactions_to == True)):
-                                        await process_transaction(config, group, tx, eth_price, tx_time)
-                                        await asyncio.sleep(1)
-                                        break
+                                        if time_diff <= timedelta(hours=1) and ((tx['from'] == address and address_info.transactions_from == True) or (tx['to'] == address and address_info.transactions_to == True)):
+                                            await process_transaction(config, group, tx, eth_price, tx_time)
+                                            await asyncio.sleep(1)
+                                            break
             await asyncio.sleep(randint(config.info_collect_interval_from, config.info_collect_interval_to) * 60)
 
         except Exception as e:
