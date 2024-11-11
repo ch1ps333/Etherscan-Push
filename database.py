@@ -48,6 +48,9 @@ class Config(Base):
     info_collect_interval_from = Column(Integer)
     info_collect_interval_to = Column(Integer)
     template_message = Column(Text)
+    photo_id = Column(String(300))
+    gif_id = Column(String(300))
+    file_type = Column(String(10))
 
 class Admins(Base):
     __tablename__ = 'admins'
@@ -172,7 +175,9 @@ async def create_config():
             if config is None:
                 config = Config(
                     info_collect_interval_from=5,
-                    info_collect_interval_to=10
+                    info_collect_interval_to=10,
+                    gif_id="CgACAgQAAxkBAAIx_WcyUkhEz2GwhlnRUuAGZaQmT0ZxAAL3AgACHC8NU7aJhu3A3mmENgQ",
+                    file_type='gif'
                 )
                 session.add(config)
                 await session.commit()
@@ -262,6 +267,24 @@ async def change_template(text):
             result = await session.execute(select(Config))
             config = result.scalars().first() 
             config.template_message = text
+            await session.commit()
+            return True
+        except SQLAlchemyError as err:
+            print(err)
+            return False
+        
+async def change_file(type, file_id):
+    async with AsyncSessionLocal() as session:
+        try:
+            result = await session.execute(select(Config))
+            config = result.scalars().first() 
+            if type == 'photo':
+                config.photo_id = file_id
+                config.file_type = 'photo'
+            elif type == 'gif':
+                config.gif_id = file_id
+                config.file_type = 'gif'
+                
             await session.commit()
             return True
         except SQLAlchemyError as err:
