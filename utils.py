@@ -4,6 +4,8 @@ class General(StatesGroup):
     template_message = State()
     collect_info_interval = State()
     admin_tg_id = State()
+    get_photo = State()
+    get_gif = State()
 
 class GroupEdit(StatesGroup):
     group_tg_id = State()
