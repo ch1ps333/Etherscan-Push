@@ -53,13 +53,12 @@ async def process_transaction(config, group, tx, eth_price, tx_time):
         return 
 
     tx_link = f"https://etherscan.io/tx/{tx_hash}"
-    value_in_eth = int(tx['value']) / 10**18
+    value_in_eth = round(int(tx['value']) / 10**18, 2)
     value_in_usd = round(value_in_eth * eth_price, 1)
     gas_price_in_eth = int(tx['gasPrice']) / 10**18
     gas_in_usd = round(gas_price_in_eth * eth_price * int(tx['gas']), 1)
     timestamp = int(tx['timeStamp'])
     tx_time = datetime.utcfromtimestamp(timestamp)
-    eth_price = round(eth_price, 2)
     
     res = await database.add_group_transaction_sum(group.tg_id, int(value_in_usd))
     transactionSum = await database.get_group_trans_sum(group.tg_id)
