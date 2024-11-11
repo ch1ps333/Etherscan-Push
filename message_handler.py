@@ -13,6 +13,12 @@ import database
 from init import bot
 load_dotenv()
 
+import json
+
+def get_admin_list():
+    with open('admin_list.json', 'r') as f:
+        return json.load(f)
+
 BOT_TOKEN = getenv('BOT_TOKEN')
 
 router = Router()
@@ -20,7 +26,7 @@ router = Router()
 @router.message(lambda message: message.text and message.text[0] == '@')
 async def reg_group_handler(message: Message):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
         
             if (message.chat.type == 'group' or message.chat.type == 'supergroup'):
@@ -41,7 +47,7 @@ async def reg_group_handler(message: Message):
 @router.message((F.text == "/start") | (F.text == "Главное меню"))
 async def general_menu(message: Message):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
 
             await message.answer("Главное меню успешно открыто.", reply_markup=await reply.display_general_menu())
@@ -51,7 +57,7 @@ async def general_menu(message: Message):
 @router.message(F.text == "Изменить шаблон сообщений")
 async def change_template_message(message: Message, state: FSMContext):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
 
             config = await database.get_config()
@@ -80,7 +86,7 @@ async def change_template_message(message: Message, state: FSMContext):
 @router.message(F.text == "Изменить интервал сбора информации")
 async def change_collect_interval(message: Message, state: FSMContext):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
 
             config = await database.get_config()
@@ -92,7 +98,7 @@ async def change_collect_interval(message: Message, state: FSMContext):
 @router.message(F.text == "Настройки групп")
 async def groups_edit(message: Message, state: FSMContext):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
 
             groups = await database.get_all_groups()
@@ -104,7 +110,7 @@ async def groups_edit(message: Message, state: FSMContext):
 @router.message(F.text == "Настройки адрессов")
 async def addresses_edit(message: Message, state: FSMContext):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
 
             await message.answer("Выберите действие", reply_markup=await reply.addresses_edit())
@@ -114,7 +120,7 @@ async def addresses_edit(message: Message, state: FSMContext):
 @router.message(F.text == "Добавить новый адресс")
 async def add_address(message: Message, state: FSMContext):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
 
             groups = await database.get_all_groups()
@@ -126,7 +132,7 @@ async def add_address(message: Message, state: FSMContext):
 @router.message(F.text == "Редактировать существующий адресс")
 async def add_address(message: Message, state: FSMContext):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
 
             groups = await database.get_all_groups()
@@ -138,7 +144,7 @@ async def add_address(message: Message, state: FSMContext):
 @router.message(F.text == "Список админов")
 async def admin_list(message: Message, state: FSMContext):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
         
             admins = await database.get_admins()
@@ -149,7 +155,7 @@ async def admin_list(message: Message, state: FSMContext):
 @router.message(F.text == "Добавить админа")
 async def add_admin(message: Message, state: FSMContext):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
         
             await message.answer("Введите ID пользователя.")
@@ -160,7 +166,7 @@ async def add_admin(message: Message, state: FSMContext):
 @router.message(F.text.regexp(r"^Удалить админа (\d+)$"))
 async def delete_admin(message: Message, state: FSMContext):
     try:
-        from admin_list import admin_list
+        admin_list = get_admin_list()
         if message.from_user.id in admin_list:
 
             match = re.match(r"^Удалить админа (\d+)$", message.text)
