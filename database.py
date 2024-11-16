@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, BigInteger, ForeignKey, String, Text, Boolean
+from sqlalchemy import create_engine, Column, Integer, BigInteger, ForeignKey, String, Text, Boolean, delete
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 
@@ -333,6 +333,9 @@ async def get_addresses(group_id: int):
 async def delete_group(tg_id: int):
     async with AsyncSessionLocal() as session:
         try:
+            delete_addresses_stmt = delete(Addresses).where(Addresses.group_id == tg_id)
+            await session.execute(delete_addresses_stmt)
+            
             result = await session.execute(select(Groups).filter(Groups.tg_id == tg_id))
             group = result.scalar_one_or_none()
 
@@ -342,7 +345,7 @@ async def delete_group(tg_id: int):
                 return True
             else:
                 return False
-    
+
         except SQLAlchemyError as err:
             print(f"Ошибка при удалении группы: {err}")
             await session.rollback()
