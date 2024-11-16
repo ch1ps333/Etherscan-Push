@@ -1,7 +1,7 @@
 from aiogram import Router, Bot, F
 from aiogram.filters import  Command, CommandStart
 from utils import General, GroupEdit, AddressEdit
-from aiogram.types import Message, InputFile, ContentType
+from aiogram.types import Message, InputFile, ContentType, MessageEntity, ReactionTypeCustomEmoji
 
 import os
 from typing import Optional
@@ -340,17 +340,20 @@ async def groups_edit_(message: Message, state: FSMContext):
             await message.answer("Вы успешно отменили редактирование группы и вернулись в главное меню.", reply_markup=await reply.display_general_menu())
             await state.clear()
         else:
-            pattern = r"^(?P<group_name>[\w\s]+) \| (?P<group_id>-?\d+)$"
+            pattern = r"^(?P<group_name>[\w\s\|]+) \|\| (?P<group_id>-?\d+)$"
             
             match = re.match(pattern, message.text)
             if match:
                 group_name = match.group('group_name')
                 await state.update_data(group_tg_id=match.group('group_id'))
                 group_info = await database.get_group(match.group('group_id'))
-                await message.answer(f"Выберите действие по отношению к группе {group_name}.", reply_markup=await reply.group_edit(group_info))
-                await state.set_state(GroupEdit.group_action)
+                if group_info:
+                    await message.answer(f"Выберите действие по отношению к группе {group_name}.", reply_markup=await reply.group_edit(group_info))
+                    await state.set_state(GroupEdit.group_action)
+                else:
+                    await message.answer("Группа с таким ID не найдена.")
             else:
-                await message.answer("Поиск не соответствует формату 'Имя группы | ID группы'")
+                await message.answer("Поиск не соответствует формату 'Имя группы || ID группы'")
     except Exception as err:
         print(f"Ошибка: {err}")
 
@@ -363,10 +366,10 @@ async def groups_edit_(message: Message, state: FSMContext):
         else:
             data = await state.get_data()
             if message.text == "Отвязать группу":
-                await state.clear()
                 res = await database.delete_group(data['group_tg_id'])
+                await state.clear()
                 if res:
-                    await message.answer("Группа успешно отвязана, привязанные кошельки не были удалены, вы можете привязать её обратно без потери данных.", reply_markup=await reply.display_general_menu())
+                    await message.answer("Группа успешно отвязана.", reply_markup=await reply.display_general_menu())
                 else:
                     await message.answer("Группу не было отвязано, возможно она уже отвязана.", reply_markup=await reply.display_general_menu())
             elif message.text == "Установить минимальную сумму транзакции":
@@ -649,29 +652,3 @@ async def send_notification(template_message, chat_id, trans_hash, trans_link, t
         print(f"Ошибка при отправке сообщения: {err}")
 
 
-PHOTO_PATH = os.path.join(os.getcwd(), "photo.jpg")
-GIF_PATH = "gif.gif"
-
-# Удаляет файл, если он уже существует
-def remove_existing_file(path):
-    if os.path.exists(path):
-        os.remove(path)
-
-@router.message(F.photo)
-async def process_photo(message: Message):
-    # Получаем список фотографий в сообщении
-    photo = message.photo[-1]  # Выбираем последнюю фотографию
-
-    # Отправляем фото, используя file_id
-
-    await message.answer_photo(photo.file_id, caption='sdsdsds')
-
-
-@router.message(F.animation)
-async def process_animation(message: Message):
-    # Получаем последнюю гифку
-    animation = message.animation
-
-    # Отправляем гифку, используя file_id
-    await message.answer(animation.file_id)
-    await message.answer_animation(animation.file_id, caption="sdsodkosd")
