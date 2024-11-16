@@ -71,7 +71,7 @@ async def display_groups(groups):
 
         row_buttons = []
         for group in groups:
-            button_text = f"{group.name} | {group.tg_id}"
+            button_text = f"{group.name} || {group.tg_id}"
             row_buttons.append(KeyboardButton(text=button_text))
             
             if len(row_buttons) == 2:
