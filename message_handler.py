@@ -106,7 +106,7 @@ async def groups_edit(message: Message, state: FSMContext):
         if message.from_user.id in admin_list:
 
             groups = await database.get_all_groups()
-            await message.answer("Выберите группу для редактирования.\n\nФормат отображения: Название группы | Телеграм ID группы", reply_markup=await reply.display_groups(groups))
+            await message.answer("Выберите группу для редактирования.\n\nФормат отображения: Название группы || Телеграм ID группы", reply_markup=await reply.display_groups(groups))
             await state.set_state(GroupEdit.group_tg_id)
     except Exception as err:
         print(err)
@@ -442,7 +442,7 @@ async def add_address_(message: Message, state: FSMContext):
             await message.answer("Вы успешно отменили привязку адресса и вернулись в главное меню.", reply_markup=await reply.display_general_menu())
             await state.clear()
         else:
-            pattern = r"^(?P<group_name>[\w\s]+) \| (?P<group_id>-?\d+)$"
+            pattern = r"^(?P<group_name>[\w\s\|]+) \|\| (?P<group_id>-?\d+)$"
 
             match = re.match(pattern, message.text)
             if match:
@@ -454,7 +454,7 @@ async def add_address_(message: Message, state: FSMContext):
                 await message.answer(f"Введите адресс, который желаете привязать к группе {group_name}.")
                 await state.set_state(AddressEdit.address_name_add)
             else:
-                await message.answer("Поиск не соответствует формату 'Имя группы | ID группы'")
+                await message.answer("Поиск не соответствует формату 'Имя группы || ID группы'")
     except Exception as err:
         print(f"Ошибка: {err}")
 
@@ -485,7 +485,7 @@ async def add_address_(message: Message, state: FSMContext):
             await message.answer("Вы успешно отменили редактирование адресса и вернулись в главное меню.", reply_markup=await reply.display_general_menu())
             await state.clear()
         else:
-            pattern = r"^(?P<group_name>[\w\s]+) \| (?P<group_id>-?\d+)$"
+            pattern = r"^(?P<group_name>[\w\s\|]+) \|\| (?P<group_id>-?\d+)$"
 
             match = re.match(pattern, message.text)
             if match:
@@ -498,7 +498,7 @@ async def add_address_(message: Message, state: FSMContext):
                 await message.answer("Выберите адресс, который желаете отредактировать.", reply_markup=await reply.display_addresses(addresses))
                 await state.set_state(AddressEdit.address)
             else:
-                await message.answer("Поиск не соответствует формату 'Имя группы | ID группы'")
+                await message.answer("Поиск не соответствует формату 'Имя группы || ID группы'")
     except Exception as err:
         print(f"Ошибка: {err}")
 
